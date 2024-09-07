@@ -1,9 +1,9 @@
-streamlit 
+streamlit==1.38.0 
 warnings
-re
-pandas 
-pymilvus 
-scikit-learn
-transformers 
-torch
-numpy
+regex==2024.7.24
+pymilvus==2.4.6 
+scikit-learn==1.5.1
+transformers==4.44.2 
+torch==2.4.0
+numpy==1.26.4
+pandas==2.2.2
