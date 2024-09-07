@@ -67,7 +67,7 @@ embeddings_pipeline = Pipeline([
 # Store description in Milvus
 def get_description(desc, email):
     embeddings = embeddings_pipeline.transform(desc)
-    data_rows = [{"vector": embeddings, "pk": int(email)}]
+    data_rows = [{"vector": embeddings, "email": email}]
     collection.insert(data_rows)
     collection.flush()
     return "Data stored successfully."
