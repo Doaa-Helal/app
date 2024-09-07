@@ -1,5 +1,4 @@
 streamlit==1.38.0 
-warnings
 regex==2024.7.24
 pymilvus==2.4.6 
 scikit-learn==1.5.1
