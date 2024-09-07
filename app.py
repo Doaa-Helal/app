@@ -88,7 +88,12 @@ def get_recommendation(description):
 
 # Streamlit UI
 st.set_page_config(page_title="Job Matching Platform", layout="wide")
-st.title("Job Matching Platform")
+st.markdown(
+    """
+    <h1 style='text-align: center; color: #4CAF50;'>Job Matching Platform</h1>
+    """,
+    unsafe_allow_html=True
+)
 
 # Define layout
 col1, col2 = st.columns(2)
