@@ -17,7 +17,7 @@ connections.connect(
    uri=ENDPOINT,
    token="2e021870ed0adebedcf7a869bc5df9905510a5d53114ee7aff6fd8f08d7799bb511c6de82f13d3c4bf45740ca0f0d4d26c0fdcb7")
 
-collection_name = "demo"
+collection_name = "jp"
 collection = Collection(name=collection_name)
 
 # BERT-based text processing pipeline
@@ -66,25 +66,54 @@ embeddings_pipeline = Pipeline([
 
 # Store description in Milvus
 def get_description(desc, email):
+    # Check if the email already exists in the collection
+    expr = f"email == '{email}'"
+    results = collection.query(expr, output_fields=["email"], limit=1)
+
+    # Generate embeddings for the provided description
     embeddings = embeddings_pipeline.transform(desc)
-    data_rows = [{"vector": embeddings, "email": email}]
-    collection.insert(data_rows)
-    collection.flush()
-    return "Data stored successfully."
+    data_rows = [{"vector": embeddings, "email": email,"description":desc}]
+
+    # If the email exists, update (upsert) the data
+    if len(results) > 0:
+        collection.upsert(data_rows)  # Replace the existing data
+        collection.flush()
+        return "Data updated successfully."
+    else:
+        # If the email does not exist, insert new data
+        collection.insert(data_rows)
+        collection.flush()
+        return "Data stored successfully."
 
 # Retrieve recommendations from Milvus
 def get_recommendation(description):
     embeddings = embeddings_pipeline.transform(description)
     search_params = {"metric_type": "COSINE", "params": {"nprobe": 10}}
-    results = collection.search(data=[embeddings], anns_field="vector", output_fields=["pk"], limit=3, param=search_params)
-    pattern = r"'pk': (\d+)"
-    ids = []
-    for result in results[0]:
-        result_str = str(result)
-        match = re.search(pattern, result_str)
-        if match:
-            ids.append(match.group(1))
-    return ids
+    results = collection.search(data=[embeddings], anns_field="vector", output_fields=["email","description"], limit=3, param=search_params)
+    for hits in results:
+        emails=[]
+        descriptions=[]
+        for hit in hits:
+            # gets the value of an output field specified in the search request.
+            # dynamic fields are supported, but vector fields are not supported yet.    
+            emails.append(hit.entity.get('email'))
+            descriptions.append(hit.entity.get('description'))
+    return emails,descriptions
+
+def delete_data(email):
+    expr = f"email == '{email}'"
+    results = collection.query(expr, output_fields=["email"], limit=1)
+    if len(results) > 0:
+        res = collection.delete(
+        
+            expr=f'email == "{email}"' 
+                    
+        )
+        collection.flush()
+        return "Your data has been deleted successfully!"
+    else:
+     
+        return "No data found for the given email."
 
 # Streamlit UI
 st.set_page_config(page_title="Job Matching Platform", layout="wide")
@@ -94,13 +123,15 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+if 'messages' not in st.session_state:
+    st.session_state['messages'] = []
 
 # Define layout
 col1, col2 = st.columns(2)
 
 # User Input Section
 with col1:
-    st.header("Store Your Data")
+    st.header("Store/update Your Data")
     with st.expander("User Input"):
         skills = st.text_input("Enter your description", placeholder="Describe your skills and experience")
         email = st.text_input("Enter your email", placeholder="Your email")
@@ -113,13 +144,34 @@ with col1:
         else:
             st.error("Please enter both description and email.")
 
+
+
+
 # Recommendation Section
 with col2:
     st.header("Get Applicant Recommendations")
     search_description = st.text_input("Enter a job description to find matching applicants", placeholder="Describe what you're looking for")
     if st.button("Get Recommendations"):
         if search_description:
-            recommended_ids = get_recommendation(search_description)
-            st.write("Recommended Applicant IDs:", recommended_ids)
+            email,des = get_recommendation(search_description)
+            st.write("email:", email)
+            st.write("description:", des)
+
         else:
             st.error("Please enter a description for recommendations.")
+st.markdown("---")
+
+# Second row with one column (Delete My Data)
+col3 = st.columns(1)[0]
+
+with col3:
+    st.header("Delete My Data")
+    with st.expander("User Input"):
+        email_to_delete = st.text_input("Enter your email to delete your data", placeholder="Your email", key='delete_email_input')
+    if st.button("Delete My Data"):
+        if email_to_delete:
+            result = delete_data(email_to_delete)
+            st.success(result)
+            st.session_state.messages.append({"role": "assistant", "content": result})
+        else:
+            st.error("Please enter your email.")
