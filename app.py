@@ -72,7 +72,7 @@ def remove_excess_whitespace(text):
 # Initialize pipeline
 lowercase_transformer = FunctionTransformer(lower_transform, validate=False)
 whitespace_transformer = FunctionTransformer(remove_excess_whitespace, validate=False)
-bert_embedding_transformer = BertEmbeddingTransformer(tokenizer, model)
+bert_embedding_transformer = BertEmbeddingTransformer()
 
 embeddings_pipeline = Pipeline([
     ('lowercase', lowercase_transformer),
