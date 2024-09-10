@@ -88,7 +88,7 @@ def get_description(desc, email):
 # Retrieve recommendations from Milvus
 def get_recommendation(description):
     embeddings = embeddings_pipeline.transform(description)
-    search_params = {"metric_type": "L2", "params": {"nprobe": 10}}
+    search_params = {"metric_type": "IP", "params": {"nprobe": 10}}
     results = collection.search(data=[embeddings], anns_field="vector", output_fields=["email","description"], limit=3, param=search_params)
     for hits in results:
         emails=[]
