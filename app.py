@@ -7,6 +7,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer
 from transformers import BertTokenizer, BertModel
 from sklearn.base import BaseEstimator, TransformerMixin
+import torch.nn.functional as F
 import torch
 import numpy as np
 
@@ -26,23 +27,41 @@ model = BertModel.from_pretrained('bert-base-uncased')
 
 # Custom BERT embedding transformer
 class BertEmbeddingTransformer(BaseEstimator, TransformerMixin):
-    def __init__(self, tokenizer, model):
-        self.tokenizer = tokenizer
-        self.model = model
+    def __init__(self, model_name='sentence-transformers/all-roberta-large-v1', device=None):
+        # Initialize the device
+        if device is None:
+            self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        else:
+            self.device = device
+        
+        # Load the tokenizer and model from HuggingFace
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name,clean_up_tokenization_spaces=False)
+        self.model = AutoModel.from_pretrained(model_name).to(self.device)
+        
+    def mean_pooling(self, model_output, attention_mask):
+        token_embeddings = model_output[0]  # First element of model_output contains all token embeddings
+        input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+        return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
 
     def fit(self, X, y=None):
         return self
 
     def transform(self, X):
-        text = [X]
-        encoding = self.tokenizer.batch_encode_plus(text, padding=True, truncation=True, return_tensors='pt', add_special_tokens=True)
-        input_ids = encoding['input_ids']
-        attention_mask = encoding['attention_mask']
+        # Tokenize the input text
+        X=[X]
+        encoded_input = self.tokenizer(X, padding=True, truncation=True, return_tensors='pt').to(self.device)
+        
+        # Generate token embeddings
         with torch.no_grad():
-            outputs = self.model(input_ids, attention_mask=attention_mask)
-            word_embeddings = outputs.last_hidden_state
-        sentence_embedding = word_embeddings.mean(dim=1)
-        return sentence_embedding.numpy().flatten()
+            model_output = self.model(**encoded_input)
+        
+        # Perform mean pooling to get sentence embeddings
+        sentence_embeddings = self.mean_pooling(model_output, encoded_input['attention_mask'])
+        
+        # Normalize the embeddings
+        sentence_embeddings = F.normalize(sentence_embeddings, p=2, dim=1)
+        
+        return sentence_embeddings.cpu().numpy().flatten()
 
 # Text cleaning functions
 def lower_transform(text):
