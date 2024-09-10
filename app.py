@@ -21,9 +21,6 @@ connections.connect(
 collection_name = "jp3"
 collection = Collection(name=collection_name)
 
-# BERT-based text processing pipeline
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', clean_up_tokenization_spaces=False)
-model = BertModel.from_pretrained('bert-base-uncased')
 
 # Custom BERT embedding transformer
 class BertEmbeddingTransformer(BaseEstimator, TransformerMixin):
