@@ -17,7 +17,7 @@ connections.connect(
    uri=ENDPOINT,
    token="2e021870ed0adebedcf7a869bc5df9905510a5d53114ee7aff6fd8f08d7799bb511c6de82f13d3c4bf45740ca0f0d4d26c0fdcb7")
 
-collection_name = "jp2"
+collection_name = "jp3"
 collection = Collection(name=collection_name)
 
 # BERT-based text processing pipeline
