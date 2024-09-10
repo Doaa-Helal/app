@@ -5,7 +5,7 @@ import pandas as pd
 from pymilvus import Collection, connections
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer
-from transformers import BertTokenizer, BertModel
+from transformers import AutoTokenizer, AutoModel
 from sklearn.base import BaseEstimator, TransformerMixin
 import torch.nn.functional as F
 import torch
